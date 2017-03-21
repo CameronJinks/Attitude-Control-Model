@@ -1,0 +1,127 @@
+%%%%%%%%%%%%%%%%%%
+
+
+%%%% DYNAMICS %%%%
+
+%Initial Conditions:
+
+% Input - initial (quaternion representation of) position 
+% Input - initial (quaternion representation of) orientation
+% Input - initial (quaternion representation of) angular momentum
+
+% Program -> 
+
+% Simulation will run for predefined time t
+% Simulation will run with predefined stepsize dt
+
+% Every timestep the program will update the transient parameters
+% Generating new values for the position orientation and angular momentum,
+% expressed in quaternions
+
+% Output - final (quaternion representation of) position 
+% Output - final (quaternion representation of) orientation
+% Output - final (quaternion representation of) angular momentum
+
+%-------------------------------------------------
+%-------------------------------------------------
+%-------------------------------------------------
+%-------------------------------------------------
+
+%%
+%-------------------------------------------------
+% EXTERNAL PERTURBATIONS
+%-------------------------------------------------
+
+% Gravity Gradient torque
+
+% Solar Radiation torque 
+
+% Magnetic field torque 
+
+%%
+%-------------------------------------------------
+% MAGNET
+%-------------------------------------------------
+
+mx=0, my=0, mz=0;
+M = [mx; my; mz];
+
+bx=0, by=0, bz=0;
+B = [bx; by; bz];
+
+tx=0, ty=0, tz=0;
+T = [tx; ty; tz];
+
+T=cross(M,B);
+
+
+%%
+%-------------------------------------------------
+% CUBESAT CONSTANTS
+%-------------------------------------------------
+
+% NOTE: Major assumption here -- 
+% Uniform density rectangular prism 
+% used for the moment of inertia
+
+% Cubesat mass
+Mc = 4;
+% Cubesat density
+Dc = 7850;
+% Cubesat Height
+hc = 0.3; 
+% Cubesat Width
+wc = 0.1;
+% Cubesat Depth
+dc = 0.1;
+% Cubesat moment of inertia
+jbxx = (1/12)*Mc*((hc^2)+(dc^2));
+jbyy = (1/12)*Mc*((hc^2)+(dc^2));
+jbzz = (1/12)*Mc*((wc^2)+(dc^2));
+% Inertia Matrix
+Jbc = [jbxx 0 0; 0 jbyy 0; 0 0 jbzz];
+
+%-------------------------------------------------
+% CUBESAT TRANSIENTS
+%-------------------------------------------------
+
+%cubesat rotational velocity
+wbx = 0;
+wby = 0;
+wbz = 0;
+Wbi = [wbx, wby, wbz];
+
+Oc = [   0, -wbx, -wby, -wbz
+       wbx,    0,  wbz, -wby
+      -wby, -wbz,    0,  wbx
+       wbz,  wby, -wbx,    0];
+
+% Quaternion Variables
+qs0 = 0;
+qsi = 0;
+qsj = 0;
+qsk = 0;
+Qbi = [qs0; qsi; qsj; qsk];
+
+% Cubesat -> inertia to body quaternion rotation matrix
+Aib = [(qs0^2 + qsi^2 - qsj^2 - qsk^2),           2*(qsi*qsj - qsk*qs0),           2*(qsi*qsk + qsi*qs0) 
+                 2*(qsi*qsj + qsk*qs0), (qs0^2 - qsi^2 + qsj^2 - qsk^2),           2*(qsj*qsk - qsi*qs0) 
+                 2*(qsi*qsk - qsj*qs0),           2*(qsj*qsk + qsi*qs0), (qs0^2 - qsi^2 - qsj^2 + qsk^2)];
+
+Abi = Aib';
+
+
+%%
+%-------------------------------------------------
+% GOVERNING EQUATIONS
+%-------------------------------------------------
+
+Lic = Lr;
+Hbc = Abi*Hic;
+Wbi = Jbc'*Hbc;
+dQbi = (1/2)*Oc*Qbi;
+
+% Hic(t + dt) = Hic + dt*(d/dt(Hic))  (5)
+% Qbi(t + dt) = Qbi + dt*(d/dt(Qbi))  (6)
+
+%Hr_last = Hr_now;
